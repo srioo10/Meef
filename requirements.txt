@@ -1,0 +1,28 @@
+# Core libraries
+pefile
+lief
+capstone
+
+# Data handling and analysis
+pandas
+numpy
+scikit-learn
+
+# Visualization (for notebooks and viz/)
+matplotlib
+seaborn
+
+# static analysis
+yara-python
+
+
+# Graph handling (IR and relationships)
+networkx
+
+# Utility libraries
+tqdm
+joblib
+
+# Jupyter notebooks support
+jupyter
+
