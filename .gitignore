@@ -1,0 +1,22 @@
+# Virtual env and cache
+venv/
+__pycache__/
+*.pyc
+
+# Samples and binaries
+samples/
+data/*.exe
+data/*.dll
+data/*.zip
+data/*.7z
+data/*.pt
+data/*.pkl
+data/models/
+
+# Misc
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+*.log
+*.env
