@@ -1,1 +1,4 @@
 sha256,label,source,first_seen,local_path,notes
+46753e9de0cc8d12b84960d9fcdc90c89efb00d6ccbed6967be627699164f63b,unknown,local,2025-10-25 20:35:19,samples/dummy/fake.asm,output/ir_results/fake_ir.json,"network, fileops, injection, crypto"
+7b8dd373820940becf19e3382c71a53a5cf4998ec07e9e80a8ceab13ed0dd3d6,unknown,local,2025-10-25 21:05:41,samples/dummy/Magnify.asm,output/ir_results/Magnify_ir.json,none
+fab4e500af5a383e861190c2d87026bd0a265710c5b38a09904d951fabfbfa84,unknown,local,2025-10-25 21:10:28,samples/dummy/calc.asm,output/ir_results/calc_ir.json,none

@@ -1,5 +1,5 @@
 {
-  "filename": "/mnt/c/Users/Sooraj S/Meef/samples/dummy/fake.asm",
+  "filename": "samples/dummy/fake.asm",
   "behavior": {
     "uses_network": 1,
     "uses_fileops": 1,

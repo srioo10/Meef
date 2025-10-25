@@ -80,7 +80,11 @@ extern int yylineno;
 void yyerror(const char *s);
 extern CDContext global_ctx;
 
-#line 84 "parser.tab.c"
+// Flag to suppress error spam
+int error_count = 0;
+#define MAX_ERRORS 10
+
+#line 88 "parser.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -449,16 +453,16 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  2
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   14
+#define YYLAST   31
 
 /* YYNTOKENS -- Number of terminals.  */
 #define YYNTOKENS  9
 /* YYNNTS -- Number of nonterminals.  */
 #define YYNNTS  5
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  12
+#define YYNRULES  17
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  18
+#define YYNSTATES  28
 
 /* YYMAXUTOK -- Last valid token kind.  */
 #define YYMAXUTOK   263
@@ -508,8 +512,8 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int8 yyrline[] =
 {
-       0,    28,    28,    29,    33,    37,    41,    45,    50,    54,
-      55,    59,    64
+       0,    32,    32,    33,    37,    41,    45,    49,    53,    58,
+      63,    67,    68,    75,    76,    80,    85,    86
 };
 #endif
 
@@ -551,8 +555,9 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-      -6,     0,    -6,     3,     4,    -6,    -6,    -6,    -6,    -6,
-      -5,    -6,    -6,    -1,    -6,     9,    -6,    -6
+      -6,     1,    -6,    -3,     9,     4,    22,    -6,    -6,    -6,
+      17,    -6,    -6,    13,    -6,    -6,    12,    15,    -6,    25,
+      -6,    19,    -6,    20,    -6,    -6,    -6,    -6
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -560,20 +565,21 @@ static const yytype_int8 yypact[] =
    means the default is an error.  */
 static const yytype_int8 yydefact[] =
 {
-       2,     0,     1,     0,     0,     8,     3,    11,    12,     5,
-       0,     9,     7,     0,     4,     0,     6,    10
+       2,     0,     1,     0,     0,     0,     0,    11,     3,    12,
+      15,    16,     5,     0,    13,     9,     0,     0,    10,     0,
+       4,     0,     6,     0,     8,    17,    14,     7
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-      -6,    -6,    -6,    -6,    -4
+      -6,    -6,    -6,    -5,    10
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-       0,     1,     6,    10,    11
+       0,     1,     8,    13,    14
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -581,36 +587,41 @@ static const yytype_int8 yydefgoto[] =
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
-       2,    14,    15,     3,     4,    16,     5,     7,     8,     9,
-      12,    17,    13,     7,     8
+      17,     2,     3,     9,     4,     5,     6,     7,    10,    11,
+      15,    23,    16,    10,    11,    12,    10,    11,    22,    20,
+      21,    24,    21,    10,    11,    19,    27,    21,    18,    25,
+       0,    26
 };
 
 static const yytype_int8 yycheck[] =
 {
-       0,     6,     7,     3,     4,     6,     6,     4,     5,     6,
-       6,    15,     8,     4,     5
+       5,     0,     1,     6,     3,     4,     5,     6,     4,     5,
+       6,    16,     8,     4,     5,     6,     4,     5,     6,     6,
+       7,     6,     7,     4,     5,     8,     6,     7,     6,     4,
+      -1,    21
 };
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
    state STATE-NUM.  */
 static const yytype_int8 yystos[] =
 {
-       0,    10,     0,     3,     4,     6,    11,     4,     5,     6,
-      12,    13,     6,     8,     6,     7,     6,    13
+       0,    10,     0,     1,     3,     4,     5,     6,    11,     6,
+       4,     5,     6,    12,    13,     6,     8,    12,     6,     8,
+       6,     7,     6,    12,     6,     4,    13,     6
 };
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr1[] =
 {
-       0,     9,    10,    10,    11,    11,    11,    11,    11,    12,
-      12,    13,    13
+       0,     9,    10,    10,    11,    11,    11,    11,    11,    11,
+      11,    11,    11,    12,    12,    13,    13,    13
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr2[] =
 {
-       0,     2,     0,     2,     3,     2,     3,     2,     1,     1,
-       3,     1,     1
+       0,     2,     0,     2,     3,     2,     3,     4,     3,     2,
+       2,     1,     2,     1,     3,     1,     1,     3
 };
 
 
@@ -1074,60 +1085,109 @@ yyreduce:
   switch (yyn)
     {
   case 4: /* line: OPCODE operands NEWLINE  */
-#line 33 "parser.y"
+#line 37 "parser.y"
                                 { 
         ctx_add_opcode(&global_ctx, (yyvsp[-2].s)); 
         free((yyvsp[-2].s)); 
     }
-#line 1083 "parser.tab.c"
+#line 1094 "parser.tab.c"
     break;
 
   case 5: /* line: OPCODE NEWLINE  */
-#line 37 "parser.y"
+#line 41 "parser.y"
                                 { 
         ctx_add_opcode(&global_ctx, (yyvsp[-1].s)); 
         free((yyvsp[-1].s)); 
     }
-#line 1092 "parser.tab.c"
+#line 1103 "parser.tab.c"
     break;
 
   case 6: /* line: IDENT COLON NEWLINE  */
-#line 41 "parser.y"
+#line 45 "parser.y"
                                 { 
         // Label definition - could track for CFG
         free((yyvsp[-2].s)); 
     }
-#line 1101 "parser.tab.c"
+#line 1112 "parser.tab.c"
     break;
 
-  case 7: /* line: IDENT NEWLINE  */
-#line 45 "parser.y"
+  case 7: /* line: IDENT COLON operands NEWLINE  */
+#line 49 "parser.y"
+                                   { 
+        // Label with instruction on same line
+        free((yyvsp[-3].s)); 
+    }
+#line 1121 "parser.tab.c"
+    break;
+
+  case 8: /* line: IDENT operands NEWLINE  */
+#line 53 "parser.y"
+                                { 
+        // Potential API call or instruction without opcode
+        ctx_add_api(&global_ctx, (yyvsp[-2].s)); 
+        free((yyvsp[-2].s)); 
+    }
+#line 1131 "parser.tab.c"
+    break;
+
+  case 9: /* line: IDENT NEWLINE  */
+#line 58 "parser.y"
                                 { 
         // Potential API call or variable
         ctx_add_api(&global_ctx, (yyvsp[-1].s)); 
         free((yyvsp[-1].s)); 
     }
-#line 1111 "parser.tab.c"
+#line 1141 "parser.tab.c"
     break;
 
-  case 11: /* operand: IDENT  */
-#line 59 "parser.y"
+  case 10: /* line: NUMBER NEWLINE  */
+#line 63 "parser.y"
+                                {
+        // Raw number/address
+        free((yyvsp[-1].s));
+    }
+#line 1150 "parser.tab.c"
+    break;
+
+  case 12: /* line: error NEWLINE  */
+#line 68 "parser.y"
+                                {
+        // Error recovery - skip to next line
+        yyerrok;
+    }
+#line 1159 "parser.tab.c"
+    break;
+
+  case 15: /* operand: IDENT  */
+#line 80 "parser.y"
                                 { 
         // This could be an API call in CALL instructions
         ctx_add_api(&global_ctx, (yyvsp[0].s)); 
         free((yyvsp[0].s)); 
     }
-#line 1121 "parser.tab.c"
+#line 1169 "parser.tab.c"
     break;
 
-  case 12: /* operand: NUMBER  */
-#line 64 "parser.y"
+  case 16: /* operand: NUMBER  */
+#line 85 "parser.y"
                                 { free((yyvsp[0].s)); }
-#line 1127 "parser.tab.c"
+#line 1175 "parser.tab.c"
+    break;
+
+  case 17: /* operand: IDENT COLON IDENT  */
+#line 86 "parser.y"
+                                {
+        // Segment:offset notation
+        ctx_add_api(&global_ctx, (yyvsp[-2].s));
+        ctx_add_api(&global_ctx, (yyvsp[0].s));
+        free((yyvsp[-2].s));
+        free((yyvsp[0].s));
+    }
+#line 1187 "parser.tab.c"
     break;
 
 
-#line 1131 "parser.tab.c"
+#line 1191 "parser.tab.c"
 
       default: break;
     }
@@ -1320,9 +1380,15 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 67 "parser.y"
+#line 95 "parser.y"
 
 
 void yyerror(const char *s) {
-    fprintf(stderr, "Parse error at line %d: %s\n", yylineno, s);
+    error_count++;
+    if (error_count <= MAX_ERRORS) {
+        fprintf(stderr, "Parse error at line %d: %s\n", yylineno, s);
+    }
+    if (error_count == MAX_ERRORS) {
+        fprintf(stderr, "(Suppressing further errors...)\n");
+    }
 }
