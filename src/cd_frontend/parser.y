@@ -4,74 +4,68 @@
 #include <string.h>
 #include "cd_context.h"
 
+extern int yylex(void);
+extern FILE *yyin;
+extern int yylineno;
+void yyerror(const char *s);
 extern CDContext global_ctx;
-void ctx_add_api(CDContext *ctx, const char *api);
-void ctx_add_opcode(CDContext *ctx, const char *op);
 %}
 
-%union {
-    char *s;
+%union { 
+    char *s; 
 }
 
-%token <s> API IDENT OPCODE HEX
+%token <s> OPCODE
+%token <s> IDENT
+%token <s> NUMBER
 %token NEWLINE
-
-%start program
+%token COMMA
+%token COLON
 
 %%
 
-program:
-      /* empty */
+program
+    : /* empty */
     | program line
     ;
 
-line:
-      stmt NEWLINE    { /* ignore */ }
-    | NEWLINE         { /* blank line */ }
+line
+    : OPCODE operands NEWLINE   { 
+        ctx_add_opcode(&global_ctx, $1); 
+        free($1); 
+    }
+    | OPCODE NEWLINE            { 
+        ctx_add_opcode(&global_ctx, $1); 
+        free($1); 
+    }
+    | IDENT COLON NEWLINE       { 
+        // Label definition - could track for CFG
+        free($1); 
+    }
+    | IDENT NEWLINE             { 
+        // Potential API call or variable
+        ctx_add_api(&global_ctx, $1); 
+        free($1); 
+    }
+    | NEWLINE
     ;
 
-stmt:
-      instr
-    | call_expr
-    | other
+operands
+    : operand
+    | operands COMMA operand
     ;
 
-instr:
-      OPCODE
-      {
-          /* record opcode */
-          ctx_add_opcode(&global_ctx, $1);
-          free($1);
-      }
-    ;
-
-call_expr:
-      OPCODE IDENT   /* e.g., CALL CreateFileA or CALL VirtualAlloc */
-      {
-          /* If the second token looks like an API, record it */
-          ctx_add_opcode(&global_ctx, $1);
-          ctx_add_api(&global_ctx, $2);
-          free($1);
-          free($2);
-      }
-    | OPCODE API
-      {
-          ctx_add_opcode(&global_ctx, $1);
-          ctx_add_api(&global_ctx, $2);
-          free($1);
-          free($2);
-      }
-    ;
-
-other:
-      IDENT { /* capture identifiers that might still be relevant */ free($1); }
-    | HEX   { free($1); }
+operand
+    : IDENT                     { 
+        // This could be an API call in CALL instructions
+        ctx_add_api(&global_ctx, $1); 
+        free($1); 
+    }
+    | NUMBER                    { free($1); }
     ;
 
 %%
 
-/* error handling */
 void yyerror(const char *s) {
-    fprintf(stderr, "Parse error: %s\n", s);
+    fprintf(stderr, "Parse error at line %d: %s\n", yylineno, s);
 }
-

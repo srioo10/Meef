@@ -1,46 +1,33 @@
 %option noyywrap
+%option yylineno
+
 %{
 #include "parser.tab.h"
 #include <string.h>
 #include <stdlib.h>
-
-/* yylval.s is used to pass strings to parser */
 %}
 
-ALPHA      [A-Za-z]
-ALNUM      [A-Za-z0-9_]
-HEXCONST   0x[0-9A-Fa-f]+
-
 %%
+
 [ \t\r]+                { /* skip whitespace */ }
 \n                      { return NEWLINE; }
 
-/* common opcodes (simple) */
-"\<MOV\>"               { yylval.s = strdup(yytext); return OPCODE; }
-"\<CALL\>"              { yylval.s = strdup(yytext); return OPCODE; }
-"\<JMP\>"               { yylval.s = strdup(yytext); return OPCODE; }
-"\<PUSH\>"              { yylval.s = strdup(yytext); return OPCODE; }
-"\<POP\>"               { yylval.s = strdup(yytext); return OPCODE; }
-"\<RET\>"               { yylval.s = strdup(yytext); return OPCODE; }
+MOV|CALL|JMP|JNZ|JZ|JE|JNE|JG|JL|PUSH|POP|RET|ADD|SUB|XOR|AND|OR|TEST|CMP|LEA|NOP   { 
+    yylval.s = strdup(yytext); 
+    return OPCODE; 
+}
 
-/* API-like tokens (DLL functions) */
-([A-Za-z_][A-Za-z0-9_]*"A")|([A-Za-z_][A-Za-z0-9_]*"W")    {
-                            yylval.s = strdup(yytext);
-                            return API;
-                          }
+[A-Za-z_][A-Za-z0-9_]*(A|W)?   { 
+    yylval.s = strdup(yytext); 
+    return IDENT; 
+}
 
-/* raw identifiers that might be API names or labels */
-[A-Za-z_][A-Za-z0-9_]*  {
-                            yylval.s = strdup(yytext);
-                            return IDENT;
-                        }
+[0-9]+                  { yylval.s = strdup(yytext); return NUMBER; }
+0x[0-9A-Fa-f]+          { yylval.s = strdup(yytext); return NUMBER; }
 
-/* hex constants like 0x401000 */
-{HEXCONST}              { yylval.s = strdup(yytext); return HEX; }
+","                     { return COMMA; }
+":"                     { return COLON; }
 
-/* anything else - treat as token for parser if needed */
-.                       { /* ignore other single chars */ }
+.                       { /* ignore other chars */ }
+
 %%
-
-/* no additional C code here */
-
