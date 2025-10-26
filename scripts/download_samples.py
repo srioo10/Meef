@@ -68,7 +68,7 @@ class MalwareBazaarDownloader:
             return []
         
         headers = {
-            'API-KEY': self.api_key,
+            'Auth-Key': self.api_key,
             'User-Agent': 'MEEF-Research-Tool'
         }
         
