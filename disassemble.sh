@@ -1,20 +1,13 @@
 #!/bin/bash
-# Enhanced disassembly helper for MEEF
-# Converts .exe/.dll to .asm using objdump
-# Supports both single files and batch folder processing
+# Clean disassembly helper for MEEF
+# Produces parser-friendly output
 
 print_usage() {
     echo "Usage:"
-    echo "  Single file:  ./disassemble.sh <file.exe> [output.asm]"
-    echo "  Batch folder: ./disassemble.sh <folder_path>"
+    echo "  Single file:  ./disassemble_clean.sh <file.exe> [output.asm]"
+    echo "  Batch folder: ./disassemble_clean.sh <folder_path>"
     echo ""
-    echo "Examples:"
-    echo "  ./disassemble.sh calc.exe calc.asm"
-    echo "  ./disassemble.sh samples/malicious/trojan.exe"
-    echo "  ./disassemble.sh samples/malicious/"
-    echo "  ./disassemble.sh samples/malicious/*.exe"
-    echo ""
-    echo "Requires: objdump (install with 'apt install binutils')"
+    echo "This version cleans objdump output to be parser-friendly"
 }
 
 if [ $# -eq 0 ]; then
@@ -28,6 +21,20 @@ if ! command -v objdump &> /dev/null; then
     echo "Install with: sudo apt install binutils"
     exit 1
 fi
+
+clean_disassembly() {
+    local RAW_FILE="$1"
+    local CLEAN_FILE="$2"
+    
+    # Extract just the instruction mnemonics and operands
+    # Remove addresses, hex bytes, section headers, etc.
+    grep -E "^\s+[0-9a-f]+:" "$RAW_FILE" | \
+        sed -E 's/^\s+[0-9a-f]+:\s+[0-9a-f ]+\s+//' | \
+        sed -E 's/\s+#.*//' | \
+        sed -E 's/\s+$//' | \
+        tr '[:lower:]' '[:upper:]' | \
+        grep -v "^$" > "$CLEAN_FILE"
+}
 
 disassemble_file() {
     local INPUT="$1"
@@ -45,26 +52,44 @@ disassemble_file() {
     fi
     
     echo "[*] Disassembling: $(basename "$INPUT")"
-    echo "    Output: $OUTPUT"
     
-    # Disassemble
-    objdump -d -M intel "$INPUT" > "$OUTPUT" 2>/dev/null
+    # Create temporary raw disassembly
+    local TEMP_RAW="${OUTPUT}.tmp"
     
-    if [ $? -eq 0 ]; then
-        # Check if output has meaningful content
-        LINES=$(wc -l < "$OUTPUT" 2>/dev/null)
-        SIZE=$(stat -c%s "$OUTPUT" 2>/dev/null || stat -f%z "$OUTPUT" 2>/dev/null)
+    # Disassemble with Intel syntax
+    objdump -d -M intel "$INPUT" > "$TEMP_RAW" 2>/dev/null
+    
+    if [ $? -ne 0 ]; then
+        echo "[✗] objdump failed"
+        rm -f "$TEMP_RAW"
+        return 1
+    fi
+    
+    # Clean the output
+    clean_disassembly "$TEMP_RAW" "$OUTPUT"
+    rm -f "$TEMP_RAW"
+    
+    # Verify output
+    if [ ! -f "$OUTPUT" ] || [ ! -s "$OUTPUT" ]; then
+        echo "[✗] Cleaning produced empty output"
+        return 1
+    fi
+    
+    LINES=$(wc -l < "$OUTPUT" 2>/dev/null)
+    SIZE=$(stat -c%s "$OUTPUT" 2>/dev/null || stat -f%z "$OUTPUT" 2>/dev/null)
+    
+    if [ "$SIZE" -gt 100 ]; then
+        echo "[✓] Success! ($LINES instructions, $(numfmt --to=iec-i --suffix=B $SIZE 2>/dev/null || echo $SIZE bytes))"
         
-        if [ "$SIZE" -gt 100 ]; then
-            echo "[✓] Success! ($LINES lines, $(numfmt --to=iec-i --suffix=B $SIZE 2>/dev/null || echo $SIZE bytes))"
-            return 0
-        else
-            echo "[✗] Disassembly produced empty output"
-            rm -f "$OUTPUT"
-            return 1
-        fi
+        # Show preview
+        echo ""
+        echo "Preview (first 10 lines):"
+        head -10 "$OUTPUT"
+        echo ""
+        
+        return 0
     else
-        echo "[✗] Disassembly failed"
+        echo "[✗] Output too small (likely failed)"
         rm -f "$OUTPUT"
         return 1
     fi
@@ -77,14 +102,14 @@ OUTPUT_PATH="$2"
 # Check if input is a directory
 if [ -d "$INPUT_PATH" ]; then
     echo "╔══════════════════════════════════════════════════════════╗"
-    echo "║           Batch Disassembly Mode (Folder)               ║"
+    echo "║           Batch Clean Disassembly Mode                  ║"
     echo "╚══════════════════════════════════════════════════════════╝"
     echo ""
     echo "[*] Scanning folder: $INPUT_PATH"
     
     # Find all .exe and .dll files
     FILES=$(find "$INPUT_PATH" -maxdepth 1 -type f \( -iname "*.exe" -o -iname "*.dll" \))
-    COUNT=$(echo "$FILES" | grep -c .)
+    COUNT=$(echo "$FILES" | grep -c . 2>/dev/null)
     
     if [ -z "$FILES" ] || [ "$COUNT" -eq 0 ]; then
         echo "[✗] No .exe or .dll files found in $INPUT_PATH"
@@ -117,27 +142,17 @@ if [ -d "$INPUT_PATH" ]; then
     echo "║ Success:         $SUCCESS"
     echo "║ Failed:          $FAILED"
     echo "╚══════════════════════════════════════════════════════════╝"
-    echo ""
-    echo "[*] ASM files saved in: $INPUT_PATH"
     
 elif [ -f "$INPUT_PATH" ]; then
     # Single file mode
     echo "╔══════════════════════════════════════════════════════════╗"
-    echo "║          Single File Disassembly Mode                    ║"
+    echo "║          Clean Single File Disassembly                   ║"
     echo "╚══════════════════════════════════════════════════════════╝"
     echo ""
     
     if disassemble_file "$INPUT_PATH" "$OUTPUT_PATH"; then
         OUTPUT="${OUTPUT_PATH:-${INPUT_PATH%.*}.asm}"
-        echo ""
-        echo "📊 Quick Stats:"
-        LINES=$(wc -l < "$OUTPUT")
-        echo "   Total lines: $LINES"
-        echo ""
-        echo "Preview (first 10 lines):"
-        head -10 "$OUTPUT"
-        echo ""
-        echo "Ready to process with:"
+        echo "Ready to parse:"
         echo "  ./src/cd_frontend/meef_parser $OUTPUT output/result_ir.json"
         exit 0
     else
