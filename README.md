@@ -3,6 +3,7 @@
 # MEeF — Malware Extraction & Evaluation Framework
 
 ## Overview
+
 MEeF is a compiler-inspired malware analysis pipeline.  
 It parses Windows executables (frontend), generates an intermediate feature representation (IR), and classifies them using ML models (backend).
 
@@ -17,6 +18,6 @@ This branch adds several non-interactive, researcher-friendly tools to the MEEF 
 See `CLI_FEATURES_README.md` for an in-depth feature guide and examples. A detailed taxonomy and classification guide is available in `docs/malware_classification.md`.
 
 Notes:
+
 - These utilities are provided for research and education. The sanitizer is a proof-of-concept and may break functionality or be incomplete; always run in isolated/sandboxed environments.
 - Files created by these tools (reports, sanitized samples) are typically placed in `output/` or `samples/sanitized/` — add them to `.gitignore` if you don't want generated outputs tracked.
-
