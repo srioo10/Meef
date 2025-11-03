@@ -7,7 +7,7 @@
 MEeF is a compiler-inspired malware analysis pipeline.  
 It parses Windows executables (frontend), generates an intermediate feature representation (IR), and classifies them using ML models (backend).
 
-## New CLI & Analysis Utilities (feature/cli-tools-and-sanitizer)
+## CLI & Analysis Utilities (feature/cli-tools-and-sanitizer)
 
 This branch adds several non-interactive, researcher-friendly tools to the MEEF workflow. They are implemented as separate scripts (no core changes to the orchestrator) and are intended for academic use only.
 
