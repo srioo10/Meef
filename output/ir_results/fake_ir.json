@@ -1,5 +1,5 @@
 {
-  "filename": "samples/dummy/fake.asm",
+  "filename": "data/models/fake.asm",
   "behavior": {
     "uses_network": 1,
     "uses_fileops": 1,

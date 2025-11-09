@@ -31,7 +31,7 @@ class MalwarePredictor:
                 self.metadata = json.load(f)
             
             print(f"[✓] Model loaded successfully")
-            print(f"    Accuracy: {self.metadata['metrics']['accuracy']*100:.2f}%")
+            print(f"    Test accuracy: {self.metadata['test_metrics']['accuracy']*100:.2f}%")
             return True
             
         except Exception as e:

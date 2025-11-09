@@ -2,6 +2,7 @@
 """
 Train ML model for malware detection
 Uses features extracted from compiler IR
+70% train, 15% validation, 15% test split
 """
 
 import pandas as pd
@@ -80,29 +81,29 @@ class MalwareClassifier:
         
         return X_train_scaled
     
-    def evaluate_model(self, X_test, y_test):
-        """Evaluate model performance"""
-        print("\n[*] Evaluating model...")
+    def evaluate_model(self, X_set, y_set, set_name="Test"):
+        """Evaluate model performance on a dataset"""
+        print(f"\n[*] Evaluating on {set_name} set...")
         
-        X_test_scaled = self.scaler.transform(X_test)
+        X_set_scaled = self.scaler.transform(X_set)
         
         # Predictions
-        y_pred = self.model.predict(X_test_scaled)
-        y_pred_proba = self.model.predict_proba(X_test_scaled)[:, 1]
+        y_pred = self.model.predict(X_set_scaled)
+        y_pred_proba = self.model.predict_proba(X_set_scaled)[:, 1]
         
         # Metrics
-        accuracy = accuracy_score(y_test, y_pred)
-        precision = precision_score(y_test, y_pred, zero_division=0)
-        recall = recall_score(y_test, y_pred, zero_division=0)
-        f1 = f1_score(y_test, y_pred, zero_division=0)
+        accuracy = accuracy_score(y_set, y_pred)
+        precision = precision_score(y_set, y_pred, zero_division=0)
+        recall = recall_score(y_set, y_pred, zero_division=0)
+        f1 = f1_score(y_set, y_pred, zero_division=0)
         
         try:
-            auc = roc_auc_score(y_test, y_pred_proba)
+            auc = roc_auc_score(y_set, y_pred_proba)
         except:
             auc = 0.0
         
         print(f"\n╔══════════════════════════════════════════════════════════╗")
-        print(f"║                   Model Performance                      ║")
+        print(f"║            {set_name} Set Performance                         ║")
         print(f"╠══════════════════════════════════════════════════════════╣")
         print(f"║ Accuracy:  {accuracy*100:6.2f}%                                        ║")
         print(f"║ Precision: {precision*100:6.2f}%                                        ║")
@@ -112,28 +113,20 @@ class MalwareClassifier:
         print(f"╚══════════════════════════════════════════════════════════╝")
         
         # Confusion Matrix
-        cm = confusion_matrix(y_test, y_pred)
-        print(f"\nConfusion Matrix:")
+        cm = confusion_matrix(y_set, y_pred)
+        print(f"\nConfusion Matrix ({set_name}):")
         print(f"                Predicted")
         print(f"              Benign  Malicious")
         print(f"Actual Benign    {cm[0][0]:4d}     {cm[0][1]:4d}")
         print(f"     Malicious   {cm[1][0]:4d}     {cm[1][1]:4d}")
-        
-        # Classification Report
-        print(f"\nDetailed Classification Report:")
-        print(classification_report(y_test, y_pred, 
-                                   target_names=['Benign', 'Malicious'],
-                                   zero_division=0))
-        
-        # Feature Importance
-        self.show_feature_importance()
         
         return {
             'accuracy': accuracy,
             'precision': precision,
             'recall': recall,
             'f1': f1,
-            'auc': auc
+            'auc': auc,
+            'confusion_matrix': cm.tolist()
         }
     
     def show_feature_importance(self, top_n=15):
@@ -149,7 +142,7 @@ class MalwareClassifier:
             idx = indices[i]
             print(f"{i+1:<6} {self.feature_names[idx]:<35} {importances[idx]:.4f}")
     
-    def save_model(self, metrics):
+    def save_model(self, train_metrics, val_metrics, test_metrics):
         """Save trained model and metadata"""
         try:
             # Save model
@@ -166,9 +159,16 @@ class MalwareClassifier:
             metadata = {
                 'feature_names': self.feature_names,
                 'num_features': len(self.feature_names),
-                'metrics': metrics,
+                'train_metrics': train_metrics,
+                'validation_metrics': val_metrics,
+                'test_metrics': test_metrics,
                 'model_type': 'RandomForestClassifier',
-                'n_estimators': self.model.n_estimators
+                'n_estimators': self.model.n_estimators,
+                'split_ratio': {
+                    'train': 0.70,
+                    'validation': 0.15,
+                    'test': 0.15
+                }
             }
             
             metadata_path = self.model_dir / "model_metadata.json"
@@ -183,9 +183,10 @@ class MalwareClassifier:
             return False
     
     def run(self):
-        """Run complete training pipeline"""
+        """Run complete training pipeline with 70/15/15 split"""
         print("╔══════════════════════════════════════════════════════════╗")
         print("║              MEEF ML Model Training                      ║")
+        print("║         70% Train | 15% Validation | 15% Test            ║")
         print("╚══════════════════════════════════════════════════════════╝")
         print()
         
@@ -203,32 +204,85 @@ class MalwareClassifier:
         # Prepare data
         X, y = self.prepare_data(df)
         
-        # Split data
-        print(f"\n[*] Splitting data (80% train, 20% test)...")
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
+        # Split data: 70% train, 30% temp (which becomes 15% val + 15% test)
+        print(f"\n[*] Splitting data (70% train, 15% validation, 15% test)...")
+        X_train, X_temp, y_train, y_temp = train_test_split(
+            X, y, test_size=0.30, random_state=42, stratify=y
         )
         
-        print(f"[✓] Train set: {len(X_train)} samples")
-        print(f"[✓] Test set:  {len(X_test)} samples")
+        # Split temp into validation and test (50/50 of temp = 15%/15% of total)
+        X_val, X_test, y_val, y_test = train_test_split(
+            X_temp, y_temp, test_size=0.50, random_state=42, stratify=y_temp
+        )
+        
+        total_samples = len(X)
+        print(f"[✓] Train set:      {len(X_train)} samples ({len(X_train)/total_samples*100:.1f}%)")
+        print(f"[✓] Validation set: {len(X_val)} samples ({len(X_val)/total_samples*100:.1f}%)")
+        print(f"[✓] Test set:       {len(X_test)} samples ({len(X_test)/total_samples*100:.1f}%)")
+        
+        print(f"\n[*] Class distribution:")
+        print(f"    Train:      Benign={np.sum(y_train==0)}, Malicious={np.sum(y_train==1)}")
+        print(f"    Validation: Benign={np.sum(y_val==0)}, Malicious={np.sum(y_val==1)}")
+        print(f"    Test:       Benign={np.sum(y_test==0)}, Malicious={np.sum(y_test==1)}")
         
         # Train model
         X_train_scaled = self.train_model(X_train, y_train)
         
-        # Cross-validation
-        print(f"\n[*] Running 5-fold cross-validation...")
+        # Cross-validation on training set
+        print(f"\n[*] Running 5-fold cross-validation on training set...")
         cv_scores = cross_val_score(self.model, X_train_scaled, y_train, cv=5, scoring='accuracy')
         print(f"[✓] CV Accuracy: {cv_scores.mean()*100:.2f}% (+/- {cv_scores.std()*100:.2f}%)")
         
-        # Evaluate
-        metrics = self.evaluate_model(X_test, y_test)
+        # Evaluate on all three sets
+        train_metrics = self.evaluate_model(X_train, y_train, "Training")
+        val_metrics = self.evaluate_model(X_val, y_val, "Validation")
+        test_metrics = self.evaluate_model(X_test, y_test, "Test")
+        
+        # Show feature importance
+        self.show_feature_importance()
+        
+        # Print detailed classification report for test set
+        print(f"\n[*] Detailed Classification Report (Test Set):")
+        X_test_scaled = self.scaler.transform(X_test)
+        y_pred = self.model.predict(X_test_scaled)
+        print(classification_report(y_test, y_pred, 
+                                   target_names=['Benign', 'Malicious'],
+                                   zero_division=0))
+        
+        # Summary comparison
+        print(f"\n╔══════════════════════════════════════════════════════════╗")
+        print(f"║                Performance Comparison                    ║")
+        print(f"╠══════════════════════════════════════════════════════════╣")
+        print(f"║ Dataset     │ Accuracy │ Precision │ Recall │ F1-Score  ║")
+        print(f"╠═════════════╪══════════╪═══════════╪════════╪═══════════╣")
+        print(f"║ Training    │  {train_metrics['accuracy']*100:5.2f}%  │   {train_metrics['precision']*100:5.2f}%  │ {train_metrics['recall']*100:5.2f}% │  {train_metrics['f1']*100:5.2f}%   ║")
+        print(f"║ Validation  │  {val_metrics['accuracy']*100:5.2f}%  │   {val_metrics['precision']*100:5.2f}%  │ {val_metrics['recall']*100:5.2f}% │  {val_metrics['f1']*100:5.2f}%   ║")
+        print(f"║ Test        │  {test_metrics['accuracy']*100:5.2f}%  │   {test_metrics['precision']*100:5.2f}%  │ {test_metrics['recall']*100:5.2f}% │  {test_metrics['f1']*100:5.2f}%   ║")
+        print(f"╚══════════════════════════════════════════════════════════╝")
+        
+        # Check for overfitting
+        train_acc = train_metrics['accuracy']
+        val_acc = val_metrics['accuracy']
+        test_acc = test_metrics['accuracy']
+        
+        print(f"\n[*] Overfitting Analysis:")
+        if train_acc - val_acc > 0.05:
+            print(f"    ⚠️  Train-Val gap: {(train_acc-val_acc)*100:.2f}% (Possible overfitting)")
+        else:
+            print(f"    ✅ Train-Val gap: {(train_acc-val_acc)*100:.2f}% (Good generalization)")
+        
+        if val_acc - test_acc > 0.05:
+            print(f"    ⚠️  Val-Test gap: {(val_acc-test_acc)*100:.2f}% (Possible variance)")
+        else:
+            print(f"    ✅ Val-Test gap: {(val_acc-test_acc)*100:.2f}% (Consistent performance)")
         
         # Save model
-        success = self.save_model(metrics)
+        success = self.save_model(train_metrics, val_metrics, test_metrics)
         
         if success:
             print(f"\n[✓] Training complete!")
             print(f"    Model ready for predictions")
+            print(f"    Final Test Accuracy: {test_acc*100:.2f}%")
             print(f"    Next step: python3 predict.py <sample.asm>")
         
         return success
