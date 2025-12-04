@@ -8,78 +8,78 @@ Uses features extracted from compiler IR
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.metrics import (classification_report, confusion_matrix, 
-                            accuracy_score, precision_score, recall_score, f1_score, roc_auc_score)
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import (classification_report, confusion_matrix,
+                             accuracy_score, precision_score, recall_score, f1_score, roc_auc_score)
 from sklearn.preprocessing import StandardScaler
 import joblib
 from pathlib import Path
 import json
 import sys
 
+
 class MalwareClassifier:
-    def __init__(self, features_path="data/features_ml.csv", model_dir="data/models"):
-        self.features_path = features_path
+    def __init__(self, features_path=None, model_dir=None):
+        repo_data_dir = Path(__file__).parent.parent  # data/
+        if features_path is None:
+            features_path = repo_data_dir / 'features_ml.csv'
+        if model_dir is None:
+            model_dir = Path(__file__).parent
+
+        self.features_path = Path(features_path)
         self.model_dir = Path(model_dir)
         self.model_dir.mkdir(parents=True, exist_ok=True)
-        
+
         self.model = None
         self.scaler = None
         self.feature_names = None
-        
+
     def load_features(self):
-        """Load feature CSV"""
         try:
-            df = pd.read_csv(self.features_path)
+            if not self.features_path.exists():
+                raise FileNotFoundError(f"Features file not found: {self.features_path}")
+
+            df = pd.read_csv(str(self.features_path))
             print(f"[✓] Loaded features: {len(df)} samples, {len(df.columns)} columns")
             return df
         except Exception as e:
             print(f"[✗] Error loading features: {e}")
             return None
-    
+
     def prepare_data(self, df):
-        """Prepare features and labels for training"""
-        # Remove non-feature columns
         exclude_cols = ['sha256', 'label', 'label_binary']
         feature_cols = [col for col in df.columns if col not in exclude_cols]
-        
+
         X = df[feature_cols].values
         y = df['label_binary'].values
-        
-        # Handle any NaN or inf values
+
         X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
-        
         self.feature_names = feature_cols
-        
+
         print(f"[✓] Prepared {len(feature_cols)} features")
-        print(f"    Class distribution: Benign={np.sum(y==0)}, Malicious={np.sum(y==1)}")
-        
+        print(f"    Class distribution: Benign={np.sum(y == 0)}, Malicious={np.sum(y == 1)}")
+
         return X, y
-    
+
     def train_model(self, X_train, y_train):
-        """Train Random Forest classifier"""
         print("\n[*] Training Random Forest classifier...")
-        
-        # Scale features
+
         self.scaler = StandardScaler()
         X_train_scaled = self.scaler.fit_transform(X_train)
-        
-        # Train model
+
         self.model = RandomForestClassifier(
             n_estimators=100,
             max_depth=20,
             min_samples_split=5,
             min_samples_leaf=2,
             random_state=42,
-            n_jobs=-1,
-            verbose=0
+            n_jobs=-1
         )
-        
+
         self.model.fit(X_train_scaled, y_train)
-        
         print(f"[✓] Model trained with {self.model.n_estimators} trees")
-        
         return X_train_scaled
+<<<<<<< Updated upstream
     
     def evaluate_model(self, X_set, y_set, set_name="Test"):
         """Evaluate model performance on a dataset"""
@@ -99,11 +99,33 @@ class MalwareClassifier:
         
         try:
             auc = roc_auc_score(y_set, y_pred_proba)
+=======
+
+    def evaluate_model(self, X, y, title="Test Set"):
+        print(f"\n[*] Evaluating model on {title}...")
+
+        X_scaled = self.scaler.transform(X)
+
+        y_pred = self.model.predict(X_scaled)
+        y_proba = self.model.predict_proba(X_scaled)[:, 1]
+
+        accuracy = accuracy_score(y, y_pred)
+        precision = precision_score(y, y_pred, zero_division=0)
+        recall = recall_score(y, y_pred, zero_division=0)
+        f1 = f1_score(y, y_pred, zero_division=0)
+
+        try:
+            auc = roc_auc_score(y, y_proba)
+>>>>>>> Stashed changes
         except:
             auc = 0.0
-        
+
         print(f"\n╔══════════════════════════════════════════════════════════╗")
+<<<<<<< Updated upstream
         print(f"║            {set_name} Set Performance                         ║")
+=======
+        print(f"║        Performance on {title:<20}              ║")
+>>>>>>> Stashed changes
         print(f"╠══════════════════════════════════════════════════════════╣")
         print(f"║ Accuracy:  {accuracy*100:6.2f}%                                        ║")
         print(f"║ Precision: {precision*100:6.2f}%                                        ║")
@@ -111,6 +133,7 @@ class MalwareClassifier:
         print(f"║ F1-Score:  {f1*100:6.2f}%                                        ║")
         print(f"║ AUC-ROC:   {auc*100:6.2f}%                                        ║")
         print(f"╚══════════════════════════════════════════════════════════╝")
+<<<<<<< Updated upstream
         
         # Confusion Matrix
         cm = confusion_matrix(y_set, y_pred)
@@ -120,6 +143,18 @@ class MalwareClassifier:
         print(f"Actual Benign    {cm[0][0]:4d}     {cm[0][1]:4d}")
         print(f"     Malicious   {cm[1][0]:4d}     {cm[1][1]:4d}")
         
+=======
+
+        print("\nConfusion Matrix:")
+        cm = confusion_matrix(y, y_pred)
+        print(cm)
+
+        print("\nClassification Report:")
+        print(classification_report(y, y_pred,
+                                   target_names=['Benign', 'Malicious'],
+                                   zero_division=0))
+
+>>>>>>> Stashed changes
         return {
             'accuracy': accuracy,
             'precision': precision,
@@ -128,6 +163,7 @@ class MalwareClassifier:
             'auc': auc,
             'confusion_matrix': cm.tolist()
         }
+<<<<<<< Updated upstream
     
     def show_feature_importance(self, top_n=15):
         """Show most important features"""
@@ -144,24 +180,29 @@ class MalwareClassifier:
     
     def save_model(self, train_metrics, val_metrics, test_metrics):
         """Save trained model and metadata"""
+=======
+
+    def save_model(self, metrics_all):
+>>>>>>> Stashed changes
         try:
-            # Save model
             model_path = self.model_dir / "malware_classifier.pkl"
             joblib.dump(self.model, model_path)
-            print(f"\n[✓] Model saved to: {model_path}")
-            
-            # Save scaler
+            print(f"[✓] Model saved to: {model_path}")
+
             scaler_path = self.model_dir / "feature_scaler.pkl"
             joblib.dump(self.scaler, scaler_path)
             print(f"[✓] Scaler saved to: {scaler_path}")
-            
-            # Save metadata
+
             metadata = {
                 'feature_names': self.feature_names,
                 'num_features': len(self.feature_names),
+<<<<<<< Updated upstream
                 'train_metrics': train_metrics,
                 'validation_metrics': val_metrics,
                 'test_metrics': test_metrics,
+=======
+                'metrics': metrics_all,
+>>>>>>> Stashed changes
                 'model_type': 'RandomForestClassifier',
                 'n_estimators': self.model.n_estimators,
                 'split_ratio': {
@@ -170,19 +211,20 @@ class MalwareClassifier:
                     'test': 0.15
                 }
             }
-            
+
             metadata_path = self.model_dir / "model_metadata.json"
             with open(metadata_path, 'w') as f:
                 json.dump(metadata, f, indent=2)
+
             print(f"[✓] Metadata saved to: {metadata_path}")
-            
             return True
-            
+
         except Exception as e:
             print(f"[✗] Error saving model: {e}")
             return False
-    
+
     def run(self):
+<<<<<<< Updated upstream
         """Run complete training pipeline with 70/15/15 split"""
         print("╔══════════════════════════════════════════════════════════╗")
         print("║              MEEF ML Model Training                      ║")
@@ -191,18 +233,22 @@ class MalwareClassifier:
         print()
         
         # Load features
+=======
+        print("╔══════════════════════════════════════════════════════════╗")
+        print("║              MEEF ML Model Training                      ║")
+        print("╚══════════════════════════════════════════════════════════╝\n")
+
+>>>>>>> Stashed changes
         df = self.load_features()
         if df is None or len(df) == 0:
-            print("[✗] No features to train on")
             return False
-        
-        # Check class balance
+
         if len(df['label'].unique()) < 2:
-            print("[✗] Need both benign and malicious samples for training")
+            print("[✗] Need both benign and malicious samples")
             return False
-        
-        # Prepare data
+
         X, y = self.prepare_data(df)
+<<<<<<< Updated upstream
         
         # Split data: 70% train, 30% temp (which becomes 15% val + 15% test)
         print(f"\n[*] Splitting data (70% train, 15% validation, 15% test)...")
@@ -285,6 +331,42 @@ class MalwareClassifier:
             print(f"    Final Test Accuracy: {test_acc*100:.2f}%")
             print(f"    Next step: python3 predict.py <sample.asm>")
         
+=======
+
+        print("\n[*] Splitting data into 70/15/15 (train/val/test)...")
+        X_train, X_temp, y_train, y_temp = train_test_split(
+            X, y, test_size=0.30, random_state=42, stratify=y
+        )
+
+        X_val, X_test, y_val, y_test = train_test_split(
+            X_temp, y_temp, test_size=0.50, random_state=42, stratify=y_temp
+        )
+
+        print(f"[✓] Train:      {len(X_train)} samples")
+        print(f"[✓] Validation: {len(X_val)} samples")
+        print(f"[✓] Test:       {len(X_test)} samples")
+
+        X_train_scaled = self.train_model(X_train, y_train)
+
+        print("\n[*] Running 5-fold cross-validation...")
+        cv_scores = cross_val_score(self.model, X_train_scaled, y_train, cv=5, scoring='accuracy')
+        print(f"[✓] CV Accuracy: {cv_scores.mean()*100:.2f}% (+/- {cv_scores.std()*100:.2f}%)")
+
+        metrics_test = self.evaluate_model(X_test, y_test, "Test Set")
+        metrics_val = self.evaluate_model(X_val, y_val, "Validation Set")
+
+        metrics = {
+            "test": metrics_test,
+            "validation": metrics_val,
+            "cv_accuracy_mean": float(cv_scores.mean()),
+            "cv_accuracy_std": float(cv_scores.std())
+        }
+
+        success = self.save_model(metrics)
+        if success:
+            print("\n[✓] Training complete! Model ready for predictions.")
+
+>>>>>>> Stashed changes
         return success
 
 

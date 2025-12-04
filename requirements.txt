@@ -26,3 +26,6 @@ joblib
 # Jupyter notebooks support
 jupyter
 
+# Web interface
+streamlit
+
