@@ -9,4 +9,4 @@ It parses Windows executables (frontend), generates an intermediate feature repr
 
 ## Workflow
 The raw file is parsed into a control flow graph (CFG) and opcode tokens, from which IR features like API ratios and instruction density are extracted for a dual-scoring classifier (ML + behavioral heuristics).
-IR outputs are present in the output directory
+IR outputs are present in the output directory.
